@@ -103,6 +103,7 @@ func (hd *HeaderDownload) SingleHeaderAsSegment(headerRaw []byte, header *types.
 
 	headerHash := types.RawRlpHash(headerRaw)
 	if _, bad := hd.badHeaders[headerHash]; bad {
+		log.Debug("DEBUG", "SingleHeaderAsSegment hd.badHeaders[headerHash]", "error")
 		log.Warn("[downloader] Rejected header marked as bad", "hash", headerHash, "height", header.Number.Uint64())
 		return nil, BadBlockPenalty, nil
 	}
@@ -520,6 +521,7 @@ func (hd *HeaderDownload) InsertHeader(hf FeedHeaderFunc, terminalTotalDifficult
 			hd.moveLinkToQueue(link, NoQueue)
 			delete(hd.links, link.hash)
 			hd.removeUpwards(link)
+			log.Debug("DEBUG", "InsertHeader hd.removeUpwards(link)", "error")
 			log.Warn("[downloader] Rejected header marked as bad", "hash", link.hash, "height", link.blockHeight)
 			return true, false, 0, lastTime, nil
 		}
