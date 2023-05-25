@@ -909,12 +909,17 @@ func (p *Parlia) splitTxs(txs types.Transactions, header *types.Header) (userTxs
 	for _, tx := range txs {
 		isSystemTx, err2 := p.IsSystemTransaction(tx, header)
 		if err2 != nil {
+			log.Error("p.IsSystemTransaction return err", "err", err2)
 			err = err2
 			return
 		}
 		if isSystemTx {
+			log.Debug("SplitTxs", "isSystemTx", "yes")
+			log.Info("Tx is", "systemTxs", systemTxs)
 			systemTxs = append(systemTxs, tx)
 		} else {
+			log.Debug("SplitTxs", "isSystemTx", "no")
+			log.Info("Tx is", "systemTxs", systemTxs)
 			userTxs = append(userTxs, tx)
 		}
 	}
@@ -962,6 +967,7 @@ func (p *Parlia) finalize(header *types.Header, state *state.IntraBlockState, tx
 	}
 	// No block rewards in PoA, so the state remains as is and uncles are dropped
 	if number == 1 {
+		log.Info("Number is 1!")
 		var err error
 		if txs, systemTxs, receipts, err = p.initContract(state, header, txs, receipts, systemTxs, &header.GasUsed, mining); err != nil {
 			log.Error("[parlia] init contract failed", "err", err)
@@ -984,7 +990,7 @@ func (p *Parlia) finalize(header *types.Header, state *state.IntraBlockState, tx
 			}
 		}
 		if !signedRecently {
-			//log.Trace("slash validator", "block hash", header.Hash(), "address", spoiledVal)
+			log.Debug("!signedRecently ", "block hash", header.Hash(), "address", spoiledVal)
 			var tx types.Transaction
 			var receipt *types.Receipt
 			if systemTxs, tx, receipt, err = p.slash(spoiledVal, state, header, len(txs), systemTxs, &header.GasUsed, mining); err != nil {
@@ -998,7 +1004,7 @@ func (p *Parlia) finalize(header *types.Header, state *state.IntraBlockState, tx
 		}
 	}
 	if txs, systemTxs, receipts, err = p.distributeIncoming(header.Coinbase, state, header, txs, receipts, systemTxs, &header.GasUsed, mining); err != nil {
-		//log.Error("distributeIncoming", "block hash", header.Hash(), "error", err, "systemTxs", len(systemTxs))
+		log.Error("distributeIncoming", "block hash", header.Hash(), "error", err, "systemTxs", len(systemTxs))
 		return nil, nil, err
 	}
 
@@ -1375,7 +1381,9 @@ func (p *Parlia) distributeIncoming(val libcommon.Address, state *state.IntraBlo
 ) (types.Transactions, types.Transactions, types.Receipts, error) {
 	coinbase := header.Coinbase
 	balance := state.GetBalance(consensus.SystemAddress).Clone()
+	log.Info("system balance", "system", balance)
 	if balance.Cmp(u256.Num0) <= 0 {
+		log.Info("system balance is 0", "system", balance)
 		return txs, systemTxs, receipts, nil
 	}
 	state.SetBalance(consensus.SystemAddress, u256.Num0)
@@ -1383,9 +1391,12 @@ func (p *Parlia) distributeIncoming(val libcommon.Address, state *state.IntraBlo
 
 	doDistributeSysReward := state.GetBalance(systemcontracts.SystemRewardContract).Cmp(maxSystemBalance) < 0
 	if doDistributeSysReward {
+		log.Info("doDistributeSysReward")
 		var rewards = new(uint256.Int)
 		rewards = rewards.Rsh(balance, systemRewardPercent)
+		log.Info("IntodoDistributeSysReward Reward", "reward", rewards)
 		if rewards.Cmp(u256.Num0) > 0 {
+			log.Info("reward > 0", "reward", rewards)
 			var err error
 			var tx types.Transaction
 			var receipt *types.Receipt
@@ -1469,6 +1480,7 @@ func (p *Parlia) distributeToSystem(amount *uint256.Int, state *state.IntraBlock
 	txIndex int, systemTxs types.Transactions,
 	usedGas *uint64, mining bool,
 ) (types.Transactions, types.Transaction, *types.Receipt, error) {
+	log.Info("Into distributeToSystem", "amount", amount)
 	return p.applyTransaction(header.Coinbase, systemcontracts.SystemRewardContract, amount, nil, state, header,
 		txIndex, systemTxs, usedGas, mining)
 }
@@ -1519,6 +1531,7 @@ func (p *Parlia) applyTransaction(from libcommon.Address, to libcommon.Address, 
 		actualTx := systemTxs[0]
 		actualHash := actualTx.SigningHash(p.chainConfig.ChainID)
 		if !bytes.Equal(actualHash.Bytes(), expectedHash.Bytes()) {
+			log.Error("Unexpected", "expected", expectedTx.Hash(), "actual", actualTx.Hash())
 			return nil, nil, nil, fmt.Errorf("expected system tx (hash %v, nonce %d, to %s, value %s, gas %d, gasPrice %s, data %s), actual tx (hash %v, nonce %d, to %s, value %s, gas %d, gasPrice %s, data %s)",
 				expectedHash.String(),
 				expectedTx.GetNonce(),
