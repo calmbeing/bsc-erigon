@@ -887,6 +887,11 @@ Loop:
 			stopped = true
 		case <-logEvery.C:
 			progress := cfg.hd.Progress()
+			if progress > 98 {
+				stopped = true
+				log.Info("stopped = true")
+				return nil
+			}
 			logProgressHeaders(logPrefix, prevProgress, progress)
 			stats := cfg.hd.ExtractStats()
 			if prevProgress == progress {

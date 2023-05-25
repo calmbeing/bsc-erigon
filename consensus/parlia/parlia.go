@@ -942,6 +942,12 @@ func (p *Parlia) finalize(header *types.Header, state *state.IntraBlockState, tx
 	receipts types.Receipts, chain consensus.ChainHeaderReader, mining bool,
 ) (types.Transactions, types.Receipts, error) {
 	userTxs, systemTxs, err := p.splitTxs(txs, header)
+	log.Info("length", "length of systemTxs", len(systemTxs))
+	log.Info("length", "length of userTxs", len(userTxs))
+	for _, tx := range systemTxs {
+		log.Info("tx info", "tx is", tx)
+		log.Info("tx info", "tx hash is", tx.Hash())
+	}
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1394,6 +1400,10 @@ func (p *Parlia) distributeIncoming(val libcommon.Address, state *state.IntraBlo
 		log.Info("doDistributeSysReward")
 		var rewards = new(uint256.Int)
 		rewards = rewards.Rsh(balance, systemRewardPercent)
+		log.Info("Rewards are", "reward.Rsh", rewards)
+		rewardss := new(big.Int)
+		rewardss = rewardss.Rsh(balance.ToBig(), systemRewardPercent)
+		log.Info("Rewardss are", "rewardss.Rsh", rewardss)
 		log.Info("IntodoDistributeSysReward Reward", "reward", rewards)
 		if rewards.Cmp(u256.Num0) > 0 {
 			log.Info("reward > 0", "reward", rewards)

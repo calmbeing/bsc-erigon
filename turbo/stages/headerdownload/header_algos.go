@@ -539,6 +539,9 @@ func (hd *HeaderDownload) InsertHeader(hf FeedHeaderFunc, terminalTotalDifficult
 				}
 			}
 		}
+		if link.blockHeight > 100 {
+			return false, true, 0, 0, nil
+		}
 		link.verified = true
 		// Make sure long insertions do not appear as a stuck stage 1
 		select {
